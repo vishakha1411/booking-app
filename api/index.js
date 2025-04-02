@@ -237,7 +237,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 app.use(cors({ 
   credentials: true,
-  origin: 'http://localhost:5173',
+  origin: 'https://booking-app-clone-alsaycanb-vishakha-agrawals-projects.vercel.app',
 }))
 app.use(bodyParser.json())
 app.use(cookieparser()) 

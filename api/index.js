@@ -245,7 +245,7 @@ app.use(cookieparser())
 const jwtSecret = 'fasefraw4r5r3wq45wdfgw34twdfg';
 
 
-app.get('/getplaces', async (req, res) => {
+app.get('/api/getplaces', async (req, res) => {
   const { token } = req.cookies;
 
   if (!token) {
@@ -267,7 +267,7 @@ app.get('/getplaces', async (req, res) => {
   });
 });
 
-app.put('/places/:id', async (req,res)=>{
+app.put('/api/places/:id', async (req,res)=>{
   mongoose.connect(process.env.MONGO_URL);
   const {token}=req.cookies;
   const {id,title, address, addedPhotos, description, price,
@@ -286,7 +286,7 @@ app.put('/places/:id', async (req,res)=>{
   })
 })
 
-app.post('/places', async (req, res) => {
+app.post('/api/places', async (req, res) => {
   mongoose.connect(process.env.MONGO_URL);
   const token = req.cookies.token;
   const {
@@ -306,7 +306,7 @@ app.post('/places', async (req, res) => {
   res.json('done')
 })
 
-app.post('/upload-link', async (req, res) => {
+app.post('/api/upload-link', async (req, res) => {
   const { link } = req.body;
   console.log('Uploading image to Supabase Storage...');
 
@@ -334,7 +334,7 @@ app.post('/upload-link', async (req, res) => {
 });
 
  
-app.post('/booking',async (req,res)=>{
+app.post('/api/booking',async (req,res)=>{
   mongoose.connect(process.env.MONGO_URL);
   const {token}=req.cookies;
   const {place,checkIn,checkOut,numberOfGuests,name,phone,price
@@ -350,7 +350,7 @@ app.post('/booking',async (req,res)=>{
   })
 })
 
-app.get('/booking',(req,res)=>{
+app.get('/api/booking',(req,res)=>{
   mongoose.connect(process.env.MONGO_URL);
   const {token}=req.cookies;
   jwt.verify(token, jwtSecret, {}, async (err, userdata) => {
@@ -361,7 +361,7 @@ app.get('/booking',(req,res)=>{
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-app.post('/upload', upload.array('photos', 50), async (req, res) => {
+app.post('/api/upload', upload.array('photos', 50), async (req, res) => {
   try {
     const uploadedFiles = [];
 
@@ -387,18 +387,18 @@ app.post('/upload', upload.array('photos', 50), async (req, res) => {
 });
 
 
-app.get('/places/:id',async (req,res)=>{
+app.get('/api/places/:id',async (req,res)=>{
   mongoose.connect(process.env.MONGO_URL);
   const {id}=req.params;
   res.json(await Place.findById(id))
 })
-app.get('/booking/:id',async (req,res)=>{
+app.get('/api/booking/:id',async (req,res)=>{
   mongoose.connect(process.env.MONGO_URL);
   const {id}=req.params;
   res.json(await Booking.findById(id).populate('place'))
 })
 
-app.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
   mongoose.connect(process.env.MONGO_URL);
   const { email, pass } = req.body;
   const doc = await User.findOne({ email: email })
@@ -416,7 +416,7 @@ app.post('/login', async (req, res) => {
   }
 })
 
-app.post('/register', (req, res) => {
+app.post('/api/register', (req, res) => {
   mongoose.connect(process.env.MONGO_URL);
   const { name, email, pass } = req.body;
   let user = new User({
@@ -428,7 +428,7 @@ app.post('/register', (req, res) => {
   res.json(user)
 })
 
-app.get('/profile', (req, res) => {
+app.get('/api/profile', (req, res) => {
   mongoose.connect(process.env.MONGO_URL);
   const { token } = req.cookies;
   if (token) {
@@ -441,12 +441,12 @@ app.get('/profile', (req, res) => {
   }
 })
 
-app.post('/logout', (req, res) => {
+app.post('/api/logout', (req, res) => {
   mongoose.connect(process.env.MONGO_URL);
   res.cookie('token', '').json(true);
 })
 
-app.get('/allplaces',async (req,res)=>{
+app.get('/api/allplaces',async (req,res)=>{
   mongoose.connect(process.env.MONGO_URL);
   res.json(await Place.find())
 })

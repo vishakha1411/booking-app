@@ -252,20 +252,22 @@ app.get('/api/getplaces', async (req, res) => {
     return res.status(401).json({ message: 'Access Denied: No token provided' });
   }
 
-  jwt.verify(token, jwtSecret, {}, async (err, data) => {
-    if (err) {
-      return res.status(403).json({ message: 'Invalid token' });
-    }
+  try {
+    const data = await new Promise((resolve, reject) => {
+      jwt.verify(token, jwtSecret, (err, decoded) => {
+        if (err) reject(err);
+        else resolve(decoded);
+      });
+    });
 
-    try {
-      const { id } = data; // Get the user ID from the decoded token
-      const places = await Place.find({ owner: id }); // Fetch places where owner matches the user ID
-      res.json(places); // Send the places as JSON response
-    } catch (error) {
-      res.status(500).json({ message: 'Error fetching places', error });
-    }
-  });
+    const places = await Place.find({ owner: data.id }); 
+    res.json(places);
+
+  } catch (error) {
+    res.status(403).json({ message: 'Invalid token' });
+  }
 });
+
 
 app.put('/api/places/:id', async (req,res)=>{
   mongoose.connect(process.env.MONGO_URL);
@@ -289,22 +291,41 @@ app.put('/api/places/:id', async (req,res)=>{
 app.post('/api/places', async (req, res) => {
   mongoose.connect(process.env.MONGO_URL);
   const token = req.cookies.token;
-  const {
-    title, address, addedPhotos, description, price,
-    perks, extraInfo, checkIn, checkOut, maxGuests,
-  } = req.body;
-  jwt.verify(token, jwtSecret, {}, async (err, userdata) => {
-    if (err) throw err;
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const userdata = await new Promise((resolve, reject) => {
+      jwt.verify(token, jwtSecret, (err, decoded) => {
+        if (err) reject(err);
+        else resolve(decoded);
+      });
+    });
 
     let place = new Place({
       owner: userdata.id,
-      title:title,address:address,photos:addedPhotos,description:description,
-          perks:perks,extraInfo:extraInfo,checkIn:checkIn,checkOut:checkOut,maxGuests:maxGuests,price:price,
-    })
-    await place.save(); 
-  })
-  res.json('done')
-})
+      title: req.body.title,
+      address: req.body.address,
+      photos: req.body.addedPhotos,
+      description: req.body.description,
+      perks: req.body.perks,
+      extraInfo: req.body.extraInfo,
+      checkIn: req.body.checkIn,
+      checkOut: req.body.checkOut,
+      maxGuests: req.body.maxGuests,
+      price: req.body.price,
+    });
+
+    await place.save();
+    return res.json('done');
+
+  } catch (error) {
+    return res.status(403).json({ message: 'Invalid token' });
+  }
+});
+
 
 app.post('/api/upload-link', async (req, res) => {
   const { link } = req.body;
@@ -334,21 +355,41 @@ app.post('/api/upload-link', async (req, res) => {
 });
 
  
-app.post('/api/booking',async (req,res)=>{
+app.post('/api/booking', async (req, res) => {
   mongoose.connect(process.env.MONGO_URL);
-  const {token}=req.cookies;
-  const {place,checkIn,checkOut,numberOfGuests,name,phone,price
-  }=req.body;
-  jwt.verify(token, jwtSecret, {}, async (err, userdata) => {
-    if (err) throw err; 
-    let booking=new Booking({
-      place,checkIn,checkOut,numberOfGuests,name,phone,price,
-      user:userdata.id,
-    })
-    await booking.save()
-    res.json(booking)
-  })
-})
+  const { token } = req.cookies;
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const userdata = await new Promise((resolve, reject) => {
+      jwt.verify(token, jwtSecret, (err, decoded) => {
+        if (err) reject(err);
+        else resolve(decoded);
+      });
+    });
+
+    const booking = new Booking({
+      place: req.body.place,
+      checkIn: req.body.checkIn,
+      checkOut: req.body.checkOut,
+      numberOfGuests: req.body.numberOfGuests,
+      name: req.body.name,
+      phone: req.body.phone,
+      price: req.body.price,
+      user: userdata.id,
+    });
+
+    await booking.save();
+    res.json(booking);
+
+  } catch (error) {
+    return res.status(403).json({ message: 'Invalid token' });
+  }
+});
+
 
 app.get('/api/booking',(req,res)=>{
   mongoose.connect(process.env.MONGO_URL);
@@ -367,21 +408,18 @@ app.post('/api/upload', upload.array('photos', 50), async (req, res) => {
 
     for (const file of req.files) {
       const fileName = `photo-${Date.now()}-${file.originalname}`;
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('airbnb')
         .upload(fileName, file.buffer, { contentType: file.mimetype });
 
       if (error) throw error;
 
-      
       uploadedFiles.push(fileName);
     }
 
-    console.log('Uploaded files:', uploadedFiles);
     res.json(uploadedFiles);
 
   } catch (err) {
-    console.error('Error uploading files:', err);
     res.status(500).json({ error: 'File upload failed' });
   }
 });
@@ -401,20 +439,28 @@ app.get('/api/booking/:id',async (req,res)=>{
 app.post('/api/login', async (req, res) => {
   mongoose.connect(process.env.MONGO_URL);
   const { email, pass } = req.body;
-  const doc = await User.findOne({ email: email })
-  if (doc) {
-    const passok = bcrypt.compareSync(pass, doc.password)
-    if (passok) {
-      jwt.sign({ email: doc.email, id: doc._id, name: doc.name }, jwtSecret, {}, (err, token) => {
-        if (err) throw err;
-        res.cookie('token', token).json(doc);
-      })
-    }
-    else res.status(422).json('pass not ok');
-  } else {
-    res.json('not found, register!')
+  const doc = await User.findOne({ email: email });
+
+  if (!doc) {
+    return res.status(404).json({ message: 'User not found, register!' });
   }
-})
+
+  const passok = bcrypt.compareSync(pass, doc.password);
+  if (!passok) {
+    return res.status(422).json({ message: 'Incorrect password' });
+  }
+
+  jwt.sign({ email: doc.email, id: doc._id, name: doc.name }, jwtSecret, {}, (err, token) => {
+    if (err) return res.status(500).json({ message: 'JWT signing error' });
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none'
+    }).json(doc);
+  });
+});
+
 
 app.post('/api/register', (req, res) => {
   mongoose.connect(process.env.MONGO_URL);
@@ -431,15 +477,19 @@ app.post('/api/register', (req, res) => {
 app.get('/api/profile', (req, res) => {
   mongoose.connect(process.env.MONGO_URL);
   const { token } = req.cookies;
-  if (token) {
-    jwt.verify(token, jwtSecret, {}, (err, data) => {
-      if (err) throw err;
-      res.json(data)
-    }) 
-  } else {
-    res.json(null)
+
+  if (!token) {
+    return res.status(401).json(null);
   }
-})
+
+  jwt.verify(token, jwtSecret, (err, data) => {
+    if (err) {
+      return res.status(403).json(null);
+    }
+    res.json(data);
+  });
+});
+
 
 app.post('/api/logout', (req, res) => {
   mongoose.connect(process.env.MONGO_URL);

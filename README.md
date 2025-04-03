@@ -7,7 +7,6 @@
 ### Property Management
 - Browse all available accommodations
 - View detailed property information (description, amenities, pricing)
-- Search/filter properties by location, price range, and amenities
 
 ### User System
 - Secure registration with email/password
@@ -58,7 +57,7 @@
 
 2. **Backend setup**
    ```bash
-   cd backend
+   cd api
    npm install
    cp .env.example .env
    # Update .env with your credentials
@@ -66,13 +65,13 @@
 
 3. **Frontend setup**
    ```bash
-   cd ../frontend
+   cd ../client
    npm install
    ```
 
 4. **Run development servers**
-   - Backend: `npm run dev` (from backend directory)
-   - Frontend: `npm start` (from frontend directory)
+   - Backend: `node index.js` (from backend directory)
+   - Frontend: `npm run dev` (from frontend directory)
 
 
 ## 🚀 Deployment

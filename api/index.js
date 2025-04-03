@@ -31,7 +31,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // Middleware
 app.use(cors({
   credentials: true,
-  origin: process.env.CLIENT_URL || 'https://booking-app-clone-alsaycanb-vishakha-agrawals-projects.vercel.app',
+  origin: process.env.CLIENT_URL || 'https://vishakha-airbnb-clone.vercel.app/',
 }));
 app.use(bodyParser.json());
 app.use(cookieParser());

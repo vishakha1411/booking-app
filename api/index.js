@@ -31,7 +31,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 // Middleware
 app.use(cors({
   credentials: true,
-  origin: process.env.CLIENT_URL || 'https://vishakha-airbnb-clone.vercel.app/',
+  origin: process.env.CLIENT_URL || 'https://airbnb-clone-vish.vercel.app/',
 }));
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -292,3 +292,4 @@ app.get('/api/allplaces', async (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
